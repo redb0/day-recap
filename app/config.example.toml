@@ -49,9 +49,9 @@ max_messages_per_chat = 500
 page_size = 100
 flood_wait_retry_seconds = 60
 
-[[telegram.chats]]
-id = -1001234567890
-name = "пример: НТР / FM core"
+# [[telegram.chats]]
+# id = 123456789
+# name = "название"
 
 [summary]
 two_stage_threshold_bytes = 100_000

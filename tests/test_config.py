@@ -1,5 +1,6 @@
 """Загрузка конфига: публичная граница для сборщиков и записи заметок."""
 
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -293,9 +294,10 @@ def test_example_config_loads(
 ) -> None:
     home = tmp_path / "home"
     _isolate_home(monkeypatch, home)
-    example = Path(__file__).parent.parent / "config.example.toml"
+    example = Path(str(files("app").joinpath("config.example.toml")))
 
     config = load_config(example)
+    example_text = example.read_text(encoding="utf-8")
 
     assert config.notes.daily_dir is None
     assert config.notes.template is None
@@ -318,7 +320,14 @@ def test_example_config_loads(
     assert config.opencode.head_messages == 10
     assert config.opencode.tail_messages == 10
     assert config.telegram.enabled is True
-    assert [(chat.id, chat.name) for chat in config.telegram.chats] == [
-        (-1001234567890, "пример: НТР / FM core"),
-    ]
+    assert (
+        config.telegram.chats,
+        """\
+# [[telegram.chats]]
+# id = 123456789
+# name = "название"
+"""
+        in example_text,
+        "-1001234567890" in example_text,
+    ) == ([], True, False)
     assert config.summary.two_stage_threshold_bytes == 100_000

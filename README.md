@@ -26,9 +26,6 @@ The raw dump stays outside the vault. An empty day does not change the note.
 
 ```sh
 uv tool install day-recap
-mkdir -p ~/.config/day-recap
-curl -fsSL -o ~/.config/day-recap/config.toml \
-  https://raw.githubusercontent.com/redb0/day-recap/main/config.example.toml
 ```
 
 Run `day-recap init` in your own terminal, not in the agent chat. Do not
@@ -51,7 +48,7 @@ read into the raw dump.
 | `[telegram]` | Whether the source is on, and the allowlist. |
 | `[summary]` | Size threshold. |
 
-Keys and defaults are in [`config.example.toml`](config.example.toml).
+Keys and defaults ship in the package as `app/config.example.toml`.
 
 - The size threshold is 100000 bytes.
 - Raw dumps are kept for 14 days.

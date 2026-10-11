@@ -26,9 +26,6 @@ Obsidian попадает только подтверждённый блок.
 
 ```sh
 uv tool install day-recap
-mkdir -p ~/.config/day-recap
-curl -fsSL -o ~/.config/day-recap/config.toml \
-  https://raw.githubusercontent.com/redb0/day-recap/main/config.example.toml
 ```
 
 `day-recap init` запускайте в своём терминале, не в чате агента. `api_id` и
@@ -50,7 +47,7 @@ curl -fsSL -o ~/.config/day-recap/config.toml \
 | `[telegram]` | Включён ли источник и белый список. |
 | `[summary]` | Порог. |
 
-Ключи и значения по умолчанию — в [`config.example.toml`](config.example.toml).
+Ключи и значения по умолчанию лежат в пакете: `app/config.example.toml`.
 
 - Порог — 100000 байт.
 - Дамп хранится 14 дней.
