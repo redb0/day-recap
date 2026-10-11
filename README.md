@@ -36,7 +36,10 @@ example and writes your answers over it. An existing file is not replaced
 wholesale. `init` asks `qr` or `code`. `qr` prints a code to scan: Settings →
 Devices → Link desktop device. `code` waits for the login code in the Telegram
 service chat. `--login qr` or `--login code` skips the question. `--relogin`
-signs in again and does not rewrite the toml by itself.
+signs in again and does not rewrite the toml by itself. After login, `init`
+shows the same numbered table as `day-recap chats` and records the selected
+numbers. An empty allowlist is asked for immediately. A non-empty one changes
+only after you agree.
 
 `day-recap chats` prints a table and ready `[[telegram.chats]]` blocks and
 does not change the config. Only allowlisted chats are read into the raw dump.
