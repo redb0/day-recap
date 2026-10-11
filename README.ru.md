@@ -24,12 +24,11 @@ Obsidian попадает только подтверждённый блок.
 
 ## Установка и конфигурация
 
-Из каталога этого репозитория:
-
 ```sh
-uv tool install --editable .
+uv tool install day-recap
 mkdir -p ~/.config/day-recap
-cp config.example.toml ~/.config/day-recap/config.toml
+curl -fsSL -o ~/.config/day-recap/config.toml \
+  https://raw.githubusercontent.com/redb0/day-recap/main/config.example.toml
 ```
 
 `day-recap init` запускайте в своём терминале, не в чате агента. `api_id` и
@@ -93,7 +92,10 @@ day-recap write --date 2026-10-05 --body - --apply
 
 ## Разработка
 
+Из каталога этого репозитория:
+
 ```sh
+uv tool install --editable .
 just lint    # ruff
 just fmt     # ruff format
 just types   # mypy

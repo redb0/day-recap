@@ -24,12 +24,11 @@ The raw dump stays outside the vault. An empty day does not change the note.
 
 ## Install and configure
 
-From a checkout of this repository:
-
 ```sh
-uv tool install --editable .
+uv tool install day-recap
 mkdir -p ~/.config/day-recap
-cp config.example.toml ~/.config/day-recap/config.toml
+curl -fsSL -o ~/.config/day-recap/config.toml \
+  https://raw.githubusercontent.com/redb0/day-recap/main/config.example.toml
 ```
 
 Run `day-recap init` in your own terminal, not in the agent chat. Do not
@@ -95,7 +94,10 @@ day-recap write --date 2026-10-05 --body - --apply
 
 ## Development
 
+From a checkout of this repository:
+
 ```sh
+uv tool install --editable .
 just lint    # ruff
 just fmt     # ruff format
 just types   # mypy
