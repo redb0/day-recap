@@ -2,6 +2,7 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,32 @@ def _packaged_skill() -> Iterator[None]:
             _PACKAGE_SKILL.unlink(missing_ok=True)
         else:
             _PACKAGE_SKILL.write_bytes(saved)
+
+
+def test_install_copies_the_packaged_skill(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    home = tmp_path / "home"
+    _isolate_home(monkeypatch, home)
+    packaged = files("app").joinpath("SKILL.md").read_text(encoding="utf-8")
+
+    exit_code = main(["install"])
+
+    skill = home / ".agents" / "skills" / "day-recap" / "SKILL.md"
+    captured = capsys.readouterr()
+    assert (
+        exit_code,
+        captured.out,
+        captured.err,
+        skill.read_text(encoding="utf-8"),
+    ) == (
+        0,
+        f"установлен: {skill}\n",
+        "",
+        packaged,
+    )
 
 
 def test_install_creates_the_skill_and_parent_directories(
