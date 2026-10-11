@@ -1,8 +1,22 @@
 [project]
 name = "day-recap"
 version = "0.2.1"
-description = "Саммари проделанной работы за день: задачи и принятые решения из git, транскриптов агентов и чатов Telegram"
+description = "Local daily work log: git, Cursor, OpenCode, and Telegram into one confirmed block in an Obsidian daily note. The agent skill drafts that block and waits for a yes before writing."
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["obsidian", "daily-notes", "telegram", "cursor", "opencode", "agent-skill"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Utilities",
+]
 requires-python = ">=3.12"
 authors = [{ name = "Vladimir Voronov", email = "vvoronov@mwnts.ru" }]
 dependencies = [
@@ -11,6 +25,12 @@ dependencies = [
     "qrcode>=8.2",
     "telethon>=1.45.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/redb0/day-recap"
+Repository = "https://github.com/redb0/day-recap"
+Issues = "https://github.com/redb0/day-recap/issues"
+Changelog = "https://github.com/redb0/day-recap/releases"
 
 [project.scripts]
 day-recap = "app.cli:main"
