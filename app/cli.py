@@ -9,11 +9,13 @@ from datetime import date
 from importlib.metadata import version
 from pathlib import Path
 
+from app.assets import PackageAssetError
 from app.collectors.telegram.chats import load_chats
-from app.collectors.telegram.init import run_init
 from app.config import Config, load_config
 from app.errors import ErrorCode, SummaryError
 from app.notes.writer import write_note
+from app.setup import run_setup
+from app.skill import install_skill, uninstall_skill
 from app.summary.collect import (
     RELATIVE_DAYS,
     SOURCES,
@@ -60,10 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
     write.add_argument("--body", type=_stdin_body, required=True)
     write.add_argument("--apply", action="store_true")
     write.add_argument("--config", type=Path, default=None)
-    init = commands.add_parser("init", help="Настроить доступ к Telegram в своём терминале.")
+    init = commands.add_parser("init", help="Настроить конфиг и вход в Telegram в своём терминале.")
     init.add_argument("--relogin", action="store_true")
     init.add_argument("--login", choices=("qr", "code"), default=None)
     init.add_argument("--config", type=Path, default=None)
+    commands.add_parser("install", help="Поставить скилл туда, откуда его читает агент.")
+    commands.add_parser("uninstall", help="Удалить установленный скилл.")
     chats = commands.add_parser("chats", help="Показать чаты и фрагмент конфига.")
     chats.add_argument("--config", type=Path, default=None)
     return parser
@@ -87,6 +91,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _dispatch(args)
     except SummaryError as error:
         _print_error(error)
+        return 1
+    except PackageAssetError as error:
+        sys.stderr.write(f"{error.message}\n{error.hint}\n")
         return 1
     except FileNotFoundError as exc:
         sys.stderr.write(f"Файл конфигурации не найден: {exc}\n")
@@ -123,6 +130,8 @@ def _stdin_body(value: str) -> str:
 
 
 def _dispatch(args: argparse.Namespace) -> int:
+    if args.command in {"install", "uninstall", "init"}:
+        return _run_local(args)
     config = load_config(args.config)
     if args.command == "collect":
         return _run_collect(config, args.date, args.source)
@@ -130,9 +139,15 @@ def _dispatch(args: argparse.Namespace) -> int:
         return _run_show(config, args.date, args.source)
     if args.command == "write":
         return _run_write(config, args.date, apply=args.apply)
-    if args.command == "init":
-        return _run_init(config, relogin=args.relogin, login=args.login)
     return _run_chats(config)
+
+
+def _run_local(args: argparse.Namespace) -> int:
+    if args.command == "install":
+        return _run_install()
+    if args.command == "uninstall":
+        return _run_uninstall()
+    return _run_init(args)
 
 
 def _run_collect(config: Config, token: str | None, source: SourceName | None) -> int:
@@ -183,15 +198,30 @@ def _run_write(config: Config, token: str, *, apply: bool) -> int:
     return 0
 
 
-def _run_init(config: Config, *, relogin: bool, login: str | None) -> int:
-    account = run_init(
-        config,
-        relogin=relogin,
-        login=login,
+def _run_install() -> int:
+    try:
+        installed = install_skill()
+    except OSError as error:
+        sys.stderr.write(f"{error}\n")
+        return 1
+    sys.stdout.write(f"установлен: {installed}\n")
+    return 0
+
+
+def _run_uninstall() -> int:
+    removed, path = uninstall_skill()
+    sys.stdout.write(f"{removed}: {path}\n")
+    return 0
+
+
+def _run_init(args: argparse.Namespace) -> int:
+    run_setup(
+        args.config,
+        relogin=args.relogin,
+        login=args.login,
         ask=_ask_credential,
         choose=_ask_login,
     )
-    sys.stdout.write(f"Вошли как {account}\n")
     return 0
 
 

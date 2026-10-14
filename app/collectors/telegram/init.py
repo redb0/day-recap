@@ -136,28 +136,14 @@ def describe_account(me: object) -> str:
     return " / ".join(parts)
 
 
-def run_init(
-    config: Config,
-    *,
-    relogin: bool,
-    login: str | None,
-    ask: Callable[[str], str],
-    choose: Callable[[], str],
-) -> str:
-    """Дописать только недостающие секреты и проверить сессию живым входом.
+def store_credentials(ask: Callable[[str], str]) -> None:
+    """Дописать только недостающие секреты в `.env`.
 
     Args:
-        config: Настройки. Каталог сессии — `state.dir`.
-        relogin: Удалить файл сессии перед входом.
-        login: `qr` или `code`. `None` — спросить, когда входа ещё нет.
         ask: Вопрос в терминале. Ключ — имя переменной.
-        choose: Ответ на `qr` или `code`, если флаг не передан.
-
-    Returns:
-        Описание аккаунта из `get_me`.
 
     Raises:
-        SummaryError: Секреты так и не собраны или Telegram отклонил вход.
+        SummaryError: После ответа секрет всё ещё пустой.
     """
     path = credentials_path()
     values = read_env(path)
@@ -165,6 +151,31 @@ def run_init(
         values[key] = ask(key).strip()
     _require_complete(values)
     write_env(path, values)
+
+
+def open_account(
+    config: Config,
+    *,
+    relogin: bool,
+    login: str | None,
+    choose: Callable[[], str],
+) -> str:
+    """Проверить сессию или войти. Секреты уже лежат в `.env`.
+
+    Args:
+        config: Настройки. Каталог сессии — `state.dir`.
+        relogin: Удалить файл сессии перед входом.
+        login: `qr` или `code`. `None` — спросить, когда входа ещё нет.
+        choose: Ответ на `qr` или `code`, если флаг не передан.
+
+    Returns:
+        Описание аккаунта из `get_me`.
+
+    Raises:
+        SummaryError: Секретов нет или Telegram отклонил вход.
+    """
+    values = read_env(credentials_path())
+    _require_complete(values)
     session = session_path(config.state.dir)
     if relogin:
         drop_session(session)

@@ -28,15 +28,21 @@ The raw dump stays outside the vault. An empty day does not change the note.
 uv tool install day-recap
 ```
 
-Run `day-recap init` in your own terminal, not in the agent chat. Do not
-type `api_id` or `api_hash` into the chat. `init` asks `qr` or `code`. `qr`
-prints a code to scan: Settings → Devices → Link desktop device. `code` waits
-for the login code in the Telegram service chat. `--login qr` or `--login code`
-skips the question. `--relogin` signs in again.
+Run `day-recap init` in your own terminal, not in the agent chat. It asks for
+the Telegram secrets, the notes directory, the template, one walk root, and
+the allowlist. Do not type `api_id` or `api_hash` into the chat. When
+`~/.config/day-recap/config.toml` is missing, `init` copies the packaged
+example and writes your answers over it. An existing file is not replaced
+wholesale. `init` asks `qr` or `code`. `qr` prints a code to scan: Settings →
+Devices → Link desktop device. `code` waits for the login code in the Telegram
+service chat. `--login qr` or `--login code` skips the question. `--relogin`
+signs in again and does not rewrite the toml by itself. After login, `init`
+shows the same numbered table as `day-recap chats` and records the selected
+numbers. An empty allowlist is asked for immediately. A non-empty one changes
+only after you agree.
 
-`day-recap chats` prints a table and ready `[[telegram.chats]]` blocks.
-Paste the blocks you want into the `[telegram]` section. Only those chats are
-read into the raw dump.
+`day-recap chats` prints a table and ready `[[telegram.chats]]` blocks and
+does not change the config. Only allowlisted chats are read into the raw dump.
 
 | Section | What it sets |
 | --- | --- |
@@ -56,7 +62,9 @@ Keys and defaults ship in the package as `app/config.example.toml`.
 
 ## In the agent
 
-Copy [`SKILL.md`](SKILL.md) to `~/.agents/skills/day-recap/SKILL.md`.
+`day-recap install` puts the skill at `~/.agents/skills/day-recap/SKILL.md`.
+Running it again replaces that directory wholesale. `day-recap uninstall`
+removes only that copy. Run both in your own terminal, not in the agent chat.
 
 ```text
 /day-recap
