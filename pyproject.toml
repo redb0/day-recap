@@ -1,6 +1,6 @@
 [project]
 name = "day-recap"
-version = "0.2.1"
+version = "0.3.0"
 description = "Local daily work log: git, Cursor, OpenCode, and Telegram into one confirmed block in an Obsidian daily note. The agent skill drafts that block and waits for a yes before writing."
 readme = "README.md"
 license = "Apache-2.0"
