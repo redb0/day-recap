@@ -259,7 +259,12 @@ def test_collected_session_is_counted_in_the_dump(
     )
 
 
-def test_disabled_source_stays_disabled_when_the_database_is_missing(tmp_path: Path) -> None:
+def test_disabled_source_stays_disabled_when_the_database_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    moment = datetime(2026, 10, 5, 15, 0, tzinfo=_MOSCOW)
+    monkeypatch.setattr("app.summary.collect.local_now", lambda _timezone: moment)
     missing = tmp_path / "missing.db"
 
     collect_and_store(

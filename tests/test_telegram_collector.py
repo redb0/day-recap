@@ -518,6 +518,7 @@ def test_stored_dump_counts_telegram_messages(
         yield client
 
     monkeypatch.setattr("app.collectors.telegram.collector.connected", _open)
+    monkeypatch.setattr("app.summary.collect.local_now", lambda _timezone: _AT)
     repos = tmp_path / "repos"
     transcripts = tmp_path / "transcripts"
     repos.mkdir()
