@@ -32,11 +32,7 @@ def _default_authors() -> list[str]:
     Returns:
         Список адресов.
     """
-    return [
-        "vvoronov@mwnts.ru",
-        "vvoronov@sila.ru",
-        "30475117+redb0@users.noreply.github.com",
-    ]
+    return ["author@example.com"]
 
 
 def _default_exclude_globs() -> list[str]:
