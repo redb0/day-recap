@@ -24,7 +24,7 @@ from app.summary.models import TranscriptMessage, TranscriptSession, Window
 
 _MOSCOW = ZoneInfo("Europe/Moscow")
 _SESSION = "ses_today"
-_DIRECTORY = "/home/vvoronov/projects/my/experience"
+_DIRECTORY = "/home/dev/projects/example"
 # Миллисекунды. Литералы, не пересчёт окна в тесте.
 _NOON = 1_791_190_800_000  # 2026-10-05 12:00:00+03:00
 _YESTERDAY = 1_791_126_000_000  # 2026-10-04 18:00:00+03:00

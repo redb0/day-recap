@@ -11,7 +11,7 @@ from app.summary.models import TranscriptMessage, TranscriptSession, Window
 
 _MOSCOW = ZoneInfo("Europe/Moscow")
 _FIXTURES = Path(__file__).parent / "fixtures" / "transcripts"
-_PROJECT = "home-vvoronov-projects-my-experience"
+_PROJECT = "home-dev-projects-example"
 _SESSION = "11111111-1111-1111-1111-111111111111"
 
 

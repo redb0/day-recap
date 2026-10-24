@@ -16,7 +16,7 @@ import pytest
 from app.cli import main
 
 _MOSCOW = ZoneInfo("Europe/Moscow")
-_AUTHOR = "vvoronov@mwnts.ru"
+_AUTHOR = "dev@example.com"
 _UNCOMMITTED = {
     "files": ["note.txt"],
     "diffstat": " note.txt | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)",
@@ -1474,7 +1474,7 @@ def _commit(repo: Path, message: str, when: datetime) -> None:
             text=True,
         )
         _git(repo, "config", "user.email", _AUTHOR)
-        _git(repo, "config", "user.name", "Vladimir Voronov")
+        _git(repo, "config", "user.name", "Example Author")
     note = repo / "note.txt"
     note.write_text(f"{message}\n", encoding="utf-8")
     _git(repo, "add", "note.txt")
@@ -1489,7 +1489,7 @@ def _commit(repo: Path, message: str, when: datetime) -> None:
             "GIT_AUTHOR_DATE": when.isoformat(),
             "GIT_COMMITTER_DATE": when.isoformat(),
             "GIT_AUTHOR_EMAIL": _AUTHOR,
-            "GIT_AUTHOR_NAME": "Vladimir Voronov",
+            "GIT_AUTHOR_NAME": "Example Author",
         },
     )
 

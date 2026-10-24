@@ -13,7 +13,7 @@ from app.config import Config, GitConfig, NotesConfig
 from app.summary.models import GitCommit, GitDirty, GitRepo, Window
 
 _MOSCOW = ZoneInfo("Europe/Moscow")
-_AUTHOR = "vvoronov@mwnts.ru"
+_AUTHOR = "dev@example.com"
 _NOTE_DIFF = """\
 diff --git a/note.txt b/note.txt
 new file mode 100644
@@ -52,7 +52,7 @@ def _init_repo(repo: Path, email: str = _AUTHOR) -> None:
         text=True,
     )
     _git(repo, "config", "user.email", email)
-    _git(repo, "config", "user.name", "Vladimir Voronov")
+    _git(repo, "config", "user.name", "Example Author")
 
 
 def _commit(
@@ -74,7 +74,7 @@ def _commit(
             "GIT_AUTHOR_DATE": when.isoformat(),
             "GIT_COMMITTER_DATE": (committer or when).isoformat(),
             "GIT_AUTHOR_EMAIL": email,
-            "GIT_AUTHOR_NAME": "Vladimir Voronov",
+            "GIT_AUTHOR_NAME": "Example Author",
         },
     )
     return _git(repo, "rev-parse", "HEAD").strip()

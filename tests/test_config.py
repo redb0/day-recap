@@ -41,11 +41,7 @@ def test_missing_file_uses_builtin_defaults(
     assert config.state.raw_retention_days == 14
     assert config.git.roots == [home / "projects"]
     assert config.git.max_depth == 3
-    assert config.git.authors == [
-        "vvoronov@mwnts.ru",
-        "vvoronov@sila.ru",
-        "30475117+redb0@users.noreply.github.com",
-    ]
+    assert config.git.authors == ["author@example.com"]
     assert config.git.include_dirty is True
     assert config.git.exclude_globs == [
         "*.min.js",
@@ -145,7 +141,7 @@ flood_wait_retry_seconds = 7
 
 [[telegram.chats]]
 id = -1001234567890
-name = "пример: НТР / FM core"
+name = "пример: команда"
 
 [summary]
 two_stage_threshold_bytes = 50
@@ -181,7 +177,7 @@ two_stage_threshold_bytes = 50
     assert config.telegram.page_size == 6
     assert config.telegram.flood_wait_retry_seconds == 7
     assert [(chat.id, chat.name) for chat in config.telegram.chats] == [
-        (-1001234567890, "пример: НТР / FM core"),
+        (-1001234567890, "пример: команда"),
     ]
     assert config.summary.two_stage_threshold_bytes == 50
 
@@ -209,11 +205,7 @@ template = ""
     assert config.notes.template is None
     assert config.notes.filename_format == "%Y-%m-%d"
     assert config.notes.timezone == "Europe/Moscow"
-    assert config.git.authors == [
-        "vvoronov@mwnts.ru",
-        "vvoronov@sila.ru",
-        "30475117+redb0@users.noreply.github.com",
-    ]
+    assert config.git.authors == ["author@example.com"]
     assert config.state.dir == home / ".local" / "state" / "day-recap"
 
 
@@ -306,11 +298,7 @@ def test_example_config_loads(
     assert config.state.dir == home / ".local" / "state" / "day-recap"
     assert config.state.raw_retention_days == 14
     assert config.git.roots == [home / "projects"]
-    assert config.git.authors == [
-        "vvoronov@mwnts.ru",
-        "vvoronov@sila.ru",
-        "30475117+redb0@users.noreply.github.com",
-    ]
+    assert config.git.authors == ["author@example.com"]
     assert config.git.max_diff_lines_per_file == 400
     assert config.git.max_diff_lines_per_commit == 2000
     assert config.git.max_diff_lines_per_day == 6000

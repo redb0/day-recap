@@ -11,11 +11,7 @@ raw_retention_days = 14
 [git]
 roots = ["~/projects"]
 max_depth = 3
-authors = [
-    "vvoronov@mwnts.ru",
-    "vvoronov@sila.ru",
-    "30475117+redb0@users.noreply.github.com",
-]
+authors = ["author@example.com"]
 include_dirty = true
 exclude_globs = [
     "*.min.js",
