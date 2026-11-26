@@ -162,7 +162,14 @@ def test_messages_carry_id_reply_and_my_participation(tmp_path: Path) -> None:
     )
 
     assert collected.chats[0].messages == [
-        TelegramMessage(id=1, sent_at=_AT, author="Я", text="выкатываю", mine=True),
+        TelegramMessage(
+            id=1,
+            sent_at=_AT,
+            author="Я",
+            text="выкатываю",
+            mine=True,
+            from_focus=True,
+        ),
         TelegramMessage(
             id=2,
             sent_at=_AT,
@@ -172,11 +179,18 @@ def test_messages_carry_id_reply_and_my_participation(tmp_path: Path) -> None:
             mentions_me=True,
         ),
         TelegramMessage(id=3, sent_at=_AT, author="Борис", text="@me глянь", mentions_me=True),
-        TelegramMessage(id=4, sent_at=_AT, author="Я", text="переслано от Аня: смотри", mine=True),
+        TelegramMessage(
+            id=4,
+            sent_at=_AT,
+            author="Я",
+            text="переслано от Аня: смотри",
+            mine=True,
+            from_focus=True,
+        ),
     ]
 
 
-def test_focus_accounts_count_as_mine(tmp_path: Path) -> None:
+def test_focus_marks_its_accounts_and_mine_stays_outgoing(tmp_path: Path) -> None:
     client = _Client(
         entities={3: SimpleNamespace(id=3)},
         messages={
@@ -190,17 +204,23 @@ def test_focus_accounts_count_as_mine(tmp_path: Path) -> None:
     )
 
     collected = collect_telegram(
-        _config(tmp_path, [(3, "работа")], focus=[42, "@report_bot"]),
+        _config(tmp_path, [(3, "работа")], focus=(42, "@report_bot")),
         _window(),
         client=client,
         sleep=_no_sleep,
     )
 
-    assert [(message.id, message.mine) for message in collected.chats[0].messages] == [
-        (1, True),
-        (2, True),
-        (3, False),
-        (4, False),
+    assert collected.chats[0].messages == [
+        TelegramMessage(
+            id=1,
+            sent_at=_AT,
+            author="Я-2",
+            text="со второй учётки",
+            from_focus=True,
+        ),
+        TelegramMessage(id=2, sent_at=_AT, author="Бот", text="отчёт", from_focus=True),
+        TelegramMessage(id=3, sent_at=_AT, author="Я", text="своё без me в focus", mine=True),
+        TelegramMessage(id=4, sent_at=_AT, author="Аня", text="чужое"),
     ]
 
 
@@ -638,7 +658,7 @@ def _config(
     *,
     max_messages: int = 500,
     page_size: int = 100,
-    focus: list[int | str] | None = None,
+    focus: tuple[int | str, ...] = ("me",),
 ) -> Config:
     return Config(
         notes=NotesConfig(timezone="Europe/Moscow"),
@@ -647,7 +667,7 @@ def _config(
             chats=[TelegramChat(id=chat_id, name=name) for chat_id, name in chats],
             max_messages_per_chat=max_messages,
             page_size=page_size,
-            focus=["me"] if focus is None else focus,
+            focus=list(focus),
         ),
         tg_api_id=1,
         tg_api_hash="a" * 32,

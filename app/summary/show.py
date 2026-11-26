@@ -163,7 +163,7 @@ def render_telegram(dump: TelegramDump) -> str:
 
     Строка сообщения начинается с `#id`, ответ — `↩#id` родителя. Своё
     сообщение помечено `моё`, остальное якорное — `якорное`. Заголовок чата
-    без якорных сообщений помечен `(чат без участия)`.
+    без участия помечен `(чат без участия)`.
 
     Args:
         dump: Записанный дамп Telegram.
@@ -178,42 +178,19 @@ def render_telegram(dump: TelegramDump) -> str:
     return head + "\n" + "\n\n".join(blocks) + "\n"
 
 
-def without_participation(dump: TelegramDump) -> int:
-    """Число чатов без участия: за окно в них нет якорных сообщений.
-
-    Args:
-        dump: Записанный дамп Telegram.
-
-    Returns:
-        Сколько чатов дампа без якорных сообщений.
-    """
-    return sum(1 for chat in dump.chats if not any(_anchors(chat)))
-
-
-def _anchors(chat: TelegramChatLog) -> list[bool]:
-    """Якорное ли каждое сообщение чата.
-
-    Якорное — своё, с упоминанием меня или ответ на своё сообщение этого дампа.
-    Родителя вне окна заменяет флаг упоминания.
-    """
-    mine = {message.id for message in chat.messages if message.mine and message.id is not None}
-    return [
-        message.mine or message.mentions_me or message.reply_to in mine for message in chat.messages
-    ]
-
-
 def _chat_block(chat: TelegramChatLog) -> str:
-    anchors = _anchors(chat)
-    heading = f"# {chat.name}" if any(anchors) else f"# {chat.name} (чат без участия)"
+    heading = f"# {chat.name}"
+    if chat.without_participation():
+        heading = f"{heading} (чат без участия)"
     lines = [heading]
-    for message, anchored in zip(chat.messages, anchors, strict=True):
-        marks = _marks_of(message, anchored=anchored)
+    for message, anchored in zip(chat.messages, chat.anchor_flags(), strict=True):
+        prefix = _message_prefix(message, anchored=anchored)
         author = message.author or ""
-        lines.append(f"{marks}{message.sent_at.isoformat()} {author}: {message.text}")
+        lines.append(f"{prefix}{message.sent_at.isoformat()} {author}: {message.text}")
     return "\n".join(lines)
 
 
-def _marks_of(message: TelegramMessage, *, anchored: bool) -> str:
+def _message_prefix(message: TelegramMessage, *, anchored: bool) -> str:
     marks: list[str] = []
     if message.id is not None:
         marks.append(f"#{message.id}")

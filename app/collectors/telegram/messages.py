@@ -20,7 +20,7 @@ _ME = "me"
 
 @dataclass(frozen=True)
 class Focus:
-    """Чьи сообщения свои: `me` — исходящие этого аккаунта, плюс id и username."""
+    """Чьи сообщения якорные по автору: `me` — исходящие этого аккаунта, плюс id и username."""
 
     me: bool
     ids: frozenset[int]
@@ -45,13 +45,13 @@ class Focus:
         )
 
     def covers(self, msg: object) -> bool:
-        """Своё ли сообщение.
+        """Входит ли автор сообщения в правило.
 
         Args:
             msg: Сообщение Telethon.
 
         Returns:
-            `True`, если автор входит в правило.
+            `True`, если автор из `focus`.
         """
         if self.me and getattr(msg, "out", False) is True:
             return True
@@ -64,8 +64,8 @@ class Focus:
 def dump_messages(
     messages: list[object],
     *,
+    focus: Focus,
     forward_names: dict[int, str] | None = None,
-    focus: Focus | None = None,
 ) -> list[TelegramMessage]:
     """Собрать сообщения дня: альбом — одна запись, служебные события пропущены.
 
@@ -74,18 +74,17 @@ def dump_messages(
 
     Args:
         messages: Сообщения Telethon в любом порядке.
+        focus: Чьи сообщения якорные по автору.
         forward_names: Имена по id из `fwd_from.from_id`, если в сообщении нет строки.
-        focus: Чьи сообщения свои. `None` — только `me`.
 
     Returns:
         Записи дампа без пустых и служебных сообщений.
     """
     names = {} if forward_names is None else forward_names
-    mine = Focus.parse([_ME]) if focus is None else focus
     visible = [message for message in messages if not _is_service(message)]
     rendered: list[TelegramMessage] = []
     for group in _chronological(group_albums(visible)):
-        item = _render_group(group, names, mine)
+        item = _render_group(group, names, focus)
         if item is not None:
             rendered.append(item)
     return rendered
@@ -223,7 +222,8 @@ def _render_group(
         author=_author(first),
         text=body,
         reply_to=next((parent for msg in ordered if (parent := _reply_to(msg)) is not None), None),
-        mine=focus.covers(first),
+        mine=getattr(first, "out", False) is True,
+        from_focus=focus.covers(first),
         mentions_me=any(getattr(msg, "mentioned", False) is True for msg in ordered),
     )
 

@@ -85,8 +85,9 @@ class TranscriptSession(BaseModel):
 class TelegramMessage(BaseModel):
     """Сообщение из белого списка. Реакции и служебные события сюда не попадают.
 
-    `mine` — автор из `telegram.focus`, `mentions_me` — флаг Telegram `mentioned`.
-    Значения по умолчанию нужны дампам, записанным до появления этих полей.
+    `mine` — исходящее этого аккаунта, `from_focus` — автор из `telegram.focus`,
+    `mentions_me` — флаг Telegram `mentioned`. Значения по умолчанию нужны
+    дампам, записанным до появления этих полей: у их сообщений нет `id`.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -97,6 +98,7 @@ class TelegramMessage(BaseModel):
     text: str
     reply_to: int | None = None
     mine: bool = False
+    from_focus: bool = False
     mentions_me: bool = False
 
 
@@ -108,6 +110,35 @@ class TelegramChatLog(BaseModel):
     id: int
     name: str
     messages: list[TelegramMessage]
+
+    def anchor_flags(self) -> list[bool]:
+        """Якорное ли каждое сообщение, в порядке `messages`.
+
+        Якорное — от автора из `focus`, с отметкой меня или ответ на моё
+        сообщение этого дампа. Родителя вне окна заменяет флаг отметки.
+
+        Returns:
+            Флаг на каждое сообщение.
+        """
+        mine = {message.id for message in self.messages if message.mine}
+        return [
+            message.from_focus
+            or message.mentions_me
+            or (message.reply_to is not None and message.reply_to in mine)
+            for message in self.messages
+        ]
+
+    def without_participation(self) -> bool:
+        """Чат без участия: за окно нет якорных сообщений.
+
+        Чат из дампа без `id` у сообщений таким не считается: разметки в нём нет.
+
+        Returns:
+            `True`, если якорных сообщений нет и разметка есть.
+        """
+        if any(message.id is None for message in self.messages):
+            return False
+        return not any(self.anchor_flags())
 
 
 class SourceDump(BaseModel):

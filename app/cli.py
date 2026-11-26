@@ -27,13 +27,7 @@ from app.summary.collect import (
     resolve_day,
 )
 from app.summary.models import Dump, GitDump, SessionDump, SourceStatus, TelegramDump, Window
-from app.summary.show import (
-    render_git,
-    render_sessions,
-    render_telegram,
-    visible_truncation,
-    without_participation,
-)
+from app.summary.show import render_git, render_sessions, render_telegram, visible_truncation
 
 DISTRIBUTION = "day-recap"
 _NOT_KEPT = "дамп не сохранён: дата старше ретенции"
@@ -370,9 +364,13 @@ def _telegram_line(dump: TelegramDump | None) -> str:
         return "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0"
     return (
         f"telegram: {_STATUS[dump.status]}{_login_code(dump)}, "
-        f"чатов: {len(dump.chats)}, без участия: {without_participation(dump)}, "
+        f"чатов: {len(dump.chats)}, без участия: {_count_without_participation(dump)}, "
         f"unlisted: {dump.unlisted_active}"
     )
+
+
+def _count_without_participation(dump: TelegramDump) -> int:
+    return sum(1 for chat in dump.chats if chat.without_participation())
 
 
 def _notes(day: CollectedDay) -> list[str]:

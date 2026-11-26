@@ -421,11 +421,7 @@ def test_show_omits_session_and_chat_ids(
         0,
         "## oc\nuser: сделал штуку\nassistant: готово\n",
         0,
-        (
-            "unlisted_active 3\n"
-            "# работа (чат без участия)\n"
-            "2026-10-05T12:00:00+03:00 Аня: посмотрела diff\n"
-        ),
+        ("unlisted_active 3\n# работа\n2026-10-05T12:00:00+03:00 Аня: посмотрела diff\n"),
         before,
     )
 
@@ -456,7 +452,14 @@ def test_show_telegram_marks_anchored_messages_and_chats_without_participation(
                     "id": 1,
                     "name": "работа",
                     "messages": [
-                        {"id": 10, "sent_at": at, "author": "Я", "text": "выкатываю", "mine": True},
+                        {
+                            "id": 10,
+                            "sent_at": at,
+                            "author": "Я",
+                            "text": "выкатываю",
+                            "mine": True,
+                            "from_focus": True,
+                        },
                         {"id": 11, "sent_at": at, "author": "Аня", "text": "ок", "reply_to": 10},
                         {"id": 12, "sent_at": at, "author": "Борис", "text": "обед?"},
                         {
@@ -468,6 +471,14 @@ def test_show_telegram_marks_anchored_messages_and_chats_without_participation(
                             "mentions_me": True,
                         },
                         {"id": 14, "sent_at": at, "author": "Аня", "text": "иду", "reply_to": 12},
+                        {
+                            "id": 15,
+                            "sent_at": at,
+                            "author": "Бот",
+                            "text": "сборка упала",
+                            "from_focus": True,
+                        },
+                        {"id": 16, "sent_at": at, "author": "Аня", "text": "вижу", "reply_to": 15},
                     ],
                 },
                 {
@@ -498,6 +509,8 @@ def test_show_telegram_marks_anchored_messages_and_chats_without_participation(
             f"#12 {at} Борис: обед?\n"
             f"#13 ↩#5 якорное {at} Аня: глянь\n"
             f"#14 ↩#12 {at} Аня: иду\n"
+            f"#15 якорное {at} Бот: сборка упала\n"
+            f"#16 ↩#15 {at} Аня: вижу\n"
             "\n"
             "# соседи (чат без участия)\n"
             f"#1 {at} Аня: кто дома\n"
