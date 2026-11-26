@@ -58,14 +58,14 @@ def test_private_dialog_is_collected_like_a_group(tmp_path: Path) -> None:
                 id=7,
                 name="личка",
                 messages=[
-                    TelegramMessage(sent_at=_AT, author="Коллега", text="созвон в 15"),
+                    TelegramMessage(id=1, sent_at=_AT, author="Коллега", text="созвон в 15"),
                 ],
             ),
             TelegramChatLog(
                 id=8,
                 name="группа",
                 messages=[
-                    TelegramMessage(sent_at=_AT, author="Коллега", text="созвон в 15"),
+                    TelegramMessage(id=2, sent_at=_AT, author="Коллега", text="созвон в 15"),
                 ],
             ),
         ],
@@ -119,16 +119,108 @@ def test_day_messages_keep_caption_forward_and_album(tmp_path: Path) -> None:
             id=3,
             name="личка",
             messages=[
-                TelegramMessage(sent_at=album_at, author="Коллега", text="альбом\nphoto, photo"),
                 TelegramMessage(
+                    id=1, sent_at=album_at, author="Коллега", text="альбом\nphoto, photo"
+                ),
+                TelegramMessage(
+                    id=3,
                     sent_at=forwarded_at,
                     author="Коллега",
                     text="переслано от Аня: смотри",
                 ),
-                TelegramMessage(sent_at=photo_at, author="Коллега", text="снимок\nphoto"),
-                TelegramMessage(sent_at=reply_at, author="Коллега", text="ок"),
+                TelegramMessage(id=4, sent_at=photo_at, author="Коллега", text="снимок\nphoto"),
+                TelegramMessage(id=6, sent_at=reply_at, author="Коллега", text="ок"),
             ],
         ),
+    ]
+
+
+def test_messages_carry_id_reply_and_my_participation(tmp_path: Path) -> None:
+    client = _Client(
+        entities={3: SimpleNamespace(id=3)},
+        messages={
+            3: [
+                _message(
+                    4,
+                    "смотри",
+                    "Я",
+                    out=True,
+                    fwd_from=SimpleNamespace(from_name="Аня"),
+                ),
+                _message(3, "@me глянь", "Борис", mentioned=True),
+                _message(2, "ок", "Аня", reply_to=_reply(1), mentioned=True),
+                _message(1, "выкатываю", "Я", out=True),
+            ],
+        },
+    )
+
+    collected = collect_telegram(
+        _config(tmp_path, [(3, "работа")]),
+        _window(),
+        client=client,
+        sleep=_no_sleep,
+    )
+
+    assert collected.chats[0].messages == [
+        TelegramMessage(
+            id=1,
+            sent_at=_AT,
+            author="Я",
+            text="выкатываю",
+            mine=True,
+            from_focus=True,
+        ),
+        TelegramMessage(
+            id=2,
+            sent_at=_AT,
+            author="Аня",
+            text="ок",
+            reply_to=1,
+            mentions_me=True,
+        ),
+        TelegramMessage(id=3, sent_at=_AT, author="Борис", text="@me глянь", mentions_me=True),
+        TelegramMessage(
+            id=4,
+            sent_at=_AT,
+            author="Я",
+            text="переслано от Аня: смотри",
+            mine=True,
+            from_focus=True,
+        ),
+    ]
+
+
+def test_focus_marks_its_accounts_and_mine_stays_outgoing(tmp_path: Path) -> None:
+    client = _Client(
+        entities={3: SimpleNamespace(id=3)},
+        messages={
+            3: [
+                _message(4, "чужое", "Аня", sender_id=7),
+                _message(3, "своё без me в focus", "Я", out=True),
+                _message(2, "отчёт", "Бот", sender_id=9, username="Report_Bot"),
+                _message(1, "со второй учётки", "Я-2", sender_id=42),
+            ],
+        },
+    )
+
+    collected = collect_telegram(
+        _config(tmp_path, [(3, "работа")], focus=(42, "@report_bot")),
+        _window(),
+        client=client,
+        sleep=_no_sleep,
+    )
+
+    assert collected.chats[0].messages == [
+        TelegramMessage(
+            id=1,
+            sent_at=_AT,
+            author="Я-2",
+            text="со второй учётки",
+            from_focus=True,
+        ),
+        TelegramMessage(id=2, sent_at=_AT, author="Бот", text="отчёт", from_focus=True),
+        TelegramMessage(id=3, sent_at=_AT, author="Я", text="своё без me в focus", mine=True),
+        TelegramMessage(id=4, sent_at=_AT, author="Аня", text="чужое"),
     ]
 
 
@@ -160,8 +252,8 @@ def test_over_limit_keeps_the_latest_messages(tmp_path: Path) -> None:
                 id=3,
                 name="личка",
                 messages=[
-                    TelegramMessage(sent_at=middle, author="Коллега", text="середина"),
-                    TelegramMessage(sent_at=late, author="Коллега", text="поздно"),
+                    TelegramMessage(id=2, sent_at=middle, author="Коллега", text="середина"),
+                    TelegramMessage(id=3, sent_at=late, author="Коллега", text="поздно"),
                 ],
             ),
         ],
@@ -206,7 +298,7 @@ def test_unlisted_chats_are_a_count_without_text(tmp_path: Path) -> None:
             TelegramChatLog(
                 id=7,
                 name="личка",
-                messages=[TelegramMessage(sent_at=_AT, author="Коллега", text="в конфиге")],
+                messages=[TelegramMessage(id=1, sent_at=_AT, author="Коллега", text="в конфиге")],
             ),
         ],
         truncations=[],
@@ -254,10 +346,16 @@ def test_forum_topics_are_one_chat(tmp_path: Path) -> None:
         entities={3: SimpleNamespace(id=3, forum=True)},
         messages={3: []},
     )
+    reply_at = datetime(2026, 10, 5, 13, 0, tzinfo=_MOSCOW)
     client.topics = {
         3: {
             1: [_message(1, "общее", "Коллега", at=general_at)],
-            2: [_message(2, "топик", "Коллега", at=topic_at)],
+            2: [
+                _message(
+                    4, "ответ", "Коллега", at=reply_at, reply_to=_reply(3, forum_topic=True, top=2)
+                ),
+                _message(3, "топик", "Коллега", at=topic_at, reply_to=_reply(2, forum_topic=True)),
+            ],
         },
     }
 
@@ -273,8 +371,15 @@ def test_forum_topics_are_one_chat(tmp_path: Path) -> None:
             id=3,
             name="форум",
             messages=[
-                TelegramMessage(sent_at=general_at, author="Коллега", text="общее"),
-                TelegramMessage(sent_at=topic_at, author="Коллега", text="топик"),
+                TelegramMessage(id=1, sent_at=general_at, author="Коллега", text="общее"),
+                TelegramMessage(id=3, sent_at=topic_at, author="Коллега", text="топик"),
+                TelegramMessage(
+                    id=4,
+                    sent_at=reply_at,
+                    author="Коллега",
+                    text="ответ",
+                    reply_to=3,
+                ),
             ],
         ),
     ]
@@ -306,7 +411,7 @@ def test_forward_uses_the_resolved_author(tmp_path: Path) -> None:
     )
 
     assert collected.chats[0].messages == [
-        TelegramMessage(sent_at=_AT, author="Коллега", text="переслано от Борис: смотри"),
+        TelegramMessage(id=1, sent_at=_AT, author="Коллега", text="переслано от Борис: смотри"),
     ]
 
 
@@ -452,7 +557,7 @@ def test_unreadable_chat_is_skipped_and_the_other_chat_stays(tmp_path: Path) -> 
             TelegramChatLog(
                 id=8,
                 name="открытый",
-                messages=[TelegramMessage(sent_at=_AT, author="Коллега", text="осталось")],
+                messages=[TelegramMessage(id=1, sent_at=_AT, author="Коллега", text="осталось")],
             ),
         ],
         truncations=["Не удалось открыть чат 7."],
@@ -553,6 +658,7 @@ def _config(
     *,
     max_messages: int = 500,
     page_size: int = 100,
+    focus: tuple[int | str, ...] = ("me",),
 ) -> Config:
     return Config(
         notes=NotesConfig(timezone="Europe/Moscow"),
@@ -561,6 +667,7 @@ def _config(
             chats=[TelegramChat(id=chat_id, name=name) for chat_id, name in chats],
             max_messages_per_chat=max_messages,
             page_size=page_size,
+            focus=list(focus),
         ),
         tg_api_id=1,
         tg_api_hash="a" * 32,
@@ -578,12 +685,24 @@ def _message(message_id: int, text: str, author: str, **fields: object) -> Simpl
         message=text,
         grouped_id=fields.get("grouped_id"),
         media=fields.get("media"),
-        sender=SimpleNamespace(id=1, first_name=author, last_name="", username=None),
+        sender=SimpleNamespace(
+            id=fields.get("sender_id", 1),
+            first_name=author,
+            last_name="",
+            username=fields.get("username"),
+        ),
         from_id=None,
         fwd_from=fields.get("fwd_from"),
         action=fields.get("action"),
         reactions=fields.get("reactions"),
+        reply_to=fields.get("reply_to"),
+        out=fields.get("out", False),
+        mentioned=fields.get("mentioned", False),
     )
+
+
+def _reply(parent_id: int, *, forum_topic: bool = False, top: int | None = None) -> SimpleNamespace:
+    return SimpleNamespace(reply_to_msg_id=parent_id, reply_to_top_id=top, forum_topic=forum_topic)
 
 
 async def _no_sleep(_seconds: float) -> None:

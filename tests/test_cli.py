@@ -107,7 +107,7 @@ def test_collect_writes_private_dump_and_prints_summary(
             "git: ok, репозиториев: 1, коммитов: 1\n"
             "transcripts: ok, сессий: 1\n"
             "opencode: выключен, сессий: 0\n"
-            "telegram: выключен, чатов: 0, unlisted: 0\n"
+            "telegram: выключен, чатов: 0, без участия: 0, unlisted: 0\n"
         ),
         [0o600, 0o600, 0o600, 0o600],
         [0o700, 0o700],
@@ -166,7 +166,7 @@ def test_collect_one_source_again_replaces_only_its_window(
         "transcripts: ok, сессий: 1, "
         "окно: 2026-10-05T00:00:00+03:00..2026-10-05T10:00:00+03:00\n"
         "opencode: не собран, сессий: 0\n"
-        "telegram: не собран, чатов: 0, unlisted: 0\n"
+        "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0\n"
     )
     assert (
         morning_code,
@@ -255,7 +255,7 @@ def test_show_missing_day_lists_four_uncollected_sources(
             "git: не собран, репозиториев: 0, коммитов: 0\n"
             "transcripts: не собран, сессий: 0\n"
             "opencode: не собран, сессий: 0\n"
-            "telegram: не собран, чатов: 0, unlisted: 0\n"
+            "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0\n"
         ),
         False,
     )
@@ -421,8 +421,100 @@ def test_show_omits_session_and_chat_ids(
         0,
         "## oc\nuser: сделал штуку\nassistant: готово\n",
         0,
-        "unlisted_active 3\n# работа\n2026-10-05T12:00:00+03:00 Аня: посмотрела diff\n",
+        ("unlisted_active 3\n# работа\n2026-10-05T12:00:00+03:00 Аня: посмотрела diff\n"),
         before,
+    )
+
+
+def test_show_telegram_marks_anchored_messages_and_chats_without_participation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    _isolate_home(monkeypatch, tmp_path / "home")
+    _freeze(monkeypatch, datetime(2026, 10, 5, 18, 0, tzinfo=_MOSCOW))
+    at = "2026-10-05T12:00:00+03:00"
+    _plant(
+        tmp_path,
+        "telegram",
+        {
+            "schema_version": 2,
+            "date": "2026-10-05",
+            "window": {
+                "from": "2026-10-05T00:00:00+03:00",
+                "to": "2026-10-05T18:00:00+03:00",
+            },
+            "generated_at": "2026-10-05T18:00:00+03:00",
+            "status": "ok",
+            "bytes": 1,
+            "chats": [
+                {
+                    "id": 1,
+                    "name": "работа",
+                    "messages": [
+                        {
+                            "id": 10,
+                            "sent_at": at,
+                            "author": "Я",
+                            "text": "выкатываю",
+                            "mine": True,
+                            "from_focus": True,
+                        },
+                        {"id": 11, "sent_at": at, "author": "Аня", "text": "ок", "reply_to": 10},
+                        {"id": 12, "sent_at": at, "author": "Борис", "text": "обед?"},
+                        {
+                            "id": 13,
+                            "sent_at": at,
+                            "author": "Аня",
+                            "text": "глянь",
+                            "reply_to": 5,
+                            "mentions_me": True,
+                        },
+                        {"id": 14, "sent_at": at, "author": "Аня", "text": "иду", "reply_to": 12},
+                        {
+                            "id": 15,
+                            "sent_at": at,
+                            "author": "Бот",
+                            "text": "сборка упала",
+                            "from_focus": True,
+                        },
+                        {"id": 16, "sent_at": at, "author": "Аня", "text": "вижу", "reply_to": 15},
+                    ],
+                },
+                {
+                    "id": 2,
+                    "name": "соседи",
+                    "messages": [{"id": 1, "sent_at": at, "author": "Аня", "text": "кто дома"}],
+                },
+            ],
+        },
+    )
+    config = _config_file(tmp_path)
+    args = ["--date", "2026-10-05", "--config", str(config)]
+
+    main(["show", *args])
+    summary = capsys.readouterr().out.splitlines()
+    main(["show", "telegram", *args])
+
+    assert (
+        [line for line in summary if line.startswith("telegram:")],
+        capsys.readouterr().out,
+    ) == (
+        ["telegram: ok, чатов: 2, без участия: 1, unlisted: 0"],
+        (
+            "unlisted_active 0\n"
+            "# работа\n"
+            f"#10 моё {at} Я: выкатываю\n"
+            f"#11 ↩#10 якорное {at} Аня: ок\n"
+            f"#12 {at} Борис: обед?\n"
+            f"#13 ↩#5 якорное {at} Аня: глянь\n"
+            f"#14 ↩#12 {at} Аня: иду\n"
+            f"#15 якорное {at} Бот: сборка упала\n"
+            f"#16 ↩#15 {at} Аня: вижу\n"
+            "\n"
+            "# соседи (чат без участия)\n"
+            f"#1 {at} Аня: кто дома\n"
+        ),
     )
 
 
@@ -723,7 +815,7 @@ def test_purged_partial_collect_reports_dumps_that_were_on_disk(
                 "окно: 2026-09-01T00:00:00+03:00..2026-09-01T10:00:00+03:00"
             ),
             "opencode: не собран, сессий: 0",
-            "telegram: не собран, чатов: 0, unlisted: 0",
+            "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0",
         ],
         False,
     )
@@ -992,7 +1084,7 @@ def test_collect_summary_prints_truncations_without_commit_text(
             "git: ok, репозиториев: 1, коммитов: 1\n"
             "transcripts: пустой, сессий: 0\n"
             "opencode: выключен, сессий: 0\n"
-            "telegram: выключен, чатов: 0, unlisted: 0\n"
+            "telegram: выключен, чатов: 0, без участия: 0, unlisted: 0\n"
             f"{printed}\n"
         ),
     )
@@ -1035,7 +1127,7 @@ def test_show_summary_drops_ids_from_truncations(
             "git: не собран, репозиториев: 0, коммитов: 0\n"
             "transcripts: ok, сессий: 1\n"
             "opencode: не собран, сессий: 0\n"
-            "telegram: не собран, чатов: 0, unlisted: 0\n"
+            "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0\n"
             "demo: сессия усечена до 2 первых и 1 последних сообщений\n"
             "Не удалось открыть чат.\n"
         ),
@@ -1107,7 +1199,7 @@ def test_collect_marks_telegram_unavailable_and_keeps_other_sources(
         "unavailable",
         "NO_SESSION",
         reason,
-        "telegram: недоступен, code: NO_SESSION, чатов: 0, unlisted: 0",
+        "telegram: недоступен, code: NO_SESSION, чатов: 0, без участия: 0, unlisted: 0",
     )
 
 
@@ -1222,7 +1314,7 @@ def test_collect_keeps_commits_when_a_transcript_cannot_be_read(
             "git: ok, репозиториев: 1, коммитов: 1\n"
             "transcripts: недоступен, сессий: 0\n"
             "opencode: выключен, сессий: 0\n"
-            "telegram: выключен, чатов: 0, unlisted: 0\n"
+            "telegram: выключен, чатов: 0, без участия: 0, unlisted: 0\n"
         ),
     )
 

@@ -10,6 +10,7 @@ from app.summary.models import (
     SessionDump,
     TelegramChatLog,
     TelegramDump,
+    TelegramMessage,
     TranscriptMessage,
     TranscriptSession,
 )
@@ -158,7 +159,11 @@ def _message_line(message: TranscriptMessage) -> str:
 
 
 def render_telegram(dump: TelegramDump) -> str:
-    """Напечатать чаты белого списка без id.
+    """Напечатать чаты белого списка без id чата.
+
+    Строка сообщения начинается с `#id`, ответ — `↩#id` родителя. Своё
+    сообщение помечено `моё`, остальное якорное — `якорное`. Заголовок чата
+    без участия помечен `(чат без участия)`.
 
     Args:
         dump: Записанный дамп Telegram.
@@ -174,8 +179,25 @@ def render_telegram(dump: TelegramDump) -> str:
 
 
 def _chat_block(chat: TelegramChatLog) -> str:
-    lines = [f"# {chat.name}"]
-    for message in chat.messages:
+    heading = f"# {chat.name}"
+    if chat.without_participation():
+        heading = f"{heading} (чат без участия)"
+    lines = [heading]
+    for message, anchored in zip(chat.messages, chat.anchor_flags(), strict=True):
+        prefix = _message_prefix(message, anchored=anchored)
         author = message.author or ""
-        lines.append(f"{message.sent_at.isoformat()} {author}: {message.text}")
+        lines.append(f"{prefix}{message.sent_at.isoformat()} {author}: {message.text}")
     return "\n".join(lines)
+
+
+def _message_prefix(message: TelegramMessage, *, anchored: bool) -> str:
+    marks: list[str] = []
+    if message.id is not None:
+        marks.append(f"#{message.id}")
+    if message.reply_to is not None:
+        marks.append(f"↩#{message.reply_to}")
+    if message.mine:
+        marks.append("моё")
+    elif anchored:
+        marks.append("якорное")
+    return "".join(f"{mark} " for mark in marks)

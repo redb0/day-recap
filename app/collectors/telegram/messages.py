@@ -3,6 +3,8 @@
 Реакции считаются здесь и в дамп не попадают: сборщик их не записывает.
 """
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 
 from telethon.tl.types import (
@@ -13,10 +15,56 @@ from telethon.tl.types import (
 
 from app.summary.models import TelegramMessage
 
+_ME = "me"
+
+
+@dataclass(frozen=True)
+class Focus:
+    """Чьи сообщения якорные по автору: `me` — исходящие этого аккаунта, плюс id и username."""
+
+    me: bool
+    ids: frozenset[int]
+    usernames: frozenset[str]
+
+    @classmethod
+    def parse(cls, entries: Sequence[int | str]) -> "Focus":
+        """Разобрать `telegram.focus`.
+
+        Args:
+            entries: `me`, id или username с `@` или без.
+
+        Returns:
+            Правило для `dump_messages`.
+        """
+        ids = frozenset(entry for entry in entries if isinstance(entry, int))
+        names = [entry for entry in entries if isinstance(entry, str) and entry != _ME]
+        return cls(
+            me=_ME in entries,
+            ids=ids,
+            usernames=frozenset(name.removeprefix("@").casefold() for name in names),
+        )
+
+    def covers(self, msg: object) -> bool:
+        """Входит ли автор сообщения в правило.
+
+        Args:
+            msg: Сообщение Telethon.
+
+        Returns:
+            `True`, если автор из `focus`.
+        """
+        if self.me and getattr(msg, "out", False) is True:
+            return True
+        user_id, _name, username = sender_fields(msg)
+        if user_id is not None and user_id in self.ids:
+            return True
+        return username is not None and username.casefold() in self.usernames
+
 
 def dump_messages(
     messages: list[object],
     *,
+    focus: Focus,
     forward_names: dict[int, str] | None = None,
 ) -> list[TelegramMessage]:
     """Собрать сообщения дня: альбом — одна запись, служебные события пропущены.
@@ -26,6 +74,7 @@ def dump_messages(
 
     Args:
         messages: Сообщения Telethon в любом порядке.
+        focus: Чьи сообщения якорные по автору.
         forward_names: Имена по id из `fwd_from.from_id`, если в сообщении нет строки.
 
     Returns:
@@ -35,7 +84,7 @@ def dump_messages(
     visible = [message for message in messages if not _is_service(message)]
     rendered: list[TelegramMessage] = []
     for group in _chronological(group_albums(visible)):
-        item = _render_group(group, names)
+        item = _render_group(group, names, focus)
         if item is not None:
             rendered.append(item)
     return rendered
@@ -157,16 +206,39 @@ def _chronological(groups: list[list[object]]) -> list[list[object]]:
     return sorted(groups, key=lambda group: min(_sort_key(message) for message in group))
 
 
-def _render_group(group: list[object], names: dict[int, str]) -> TelegramMessage | None:
+def _render_group(
+    group: list[object],
+    names: dict[int, str],
+    focus: Focus,
+) -> TelegramMessage | None:
     ordered = sorted(group, key=_sort_key)
     body = _body(ordered, names)
     if body == "":
         return None
+    first = ordered[0]
     return TelegramMessage(
-        sent_at=_sent_at(ordered[0]),
-        author=_author(ordered[0]),
+        id=_message_id(first),
+        sent_at=_sent_at(first),
+        author=_author(first),
         text=body,
+        reply_to=next((parent for msg in ordered if (parent := _reply_to(msg)) is not None), None),
+        mine=getattr(first, "out", False) is True,
+        from_focus=focus.covers(first),
+        mentions_me=any(getattr(msg, "mentioned", False) is True for msg in ordered),
     )
+
+
+def _reply_to(msg: object) -> int | None:
+    header = getattr(msg, "reply_to", None)
+    if header is None:
+        return None
+    # Сообщение топика без ответа ссылается на корень топика, а не на реплику.
+    if getattr(header, "forum_topic", False) and getattr(header, "reply_to_top_id", None) is None:
+        return None
+    parent = getattr(header, "reply_to_msg_id", None)
+    if isinstance(parent, int):
+        return parent
+    return None
 
 
 def _body(messages: list[object], names: dict[int, str]) -> str:
@@ -223,10 +295,14 @@ def _author(msg: object) -> str | None:
 
 
 def _sort_key(msg: object) -> tuple[datetime, int]:
-    message_id = getattr(msg, "id", 0)
-    if not isinstance(message_id, int):
-        message_id = 0
-    return _sent_at(msg), message_id
+    return _sent_at(msg), _message_id(msg) or 0
+
+
+def _message_id(msg: object) -> int | None:
+    message_id = getattr(msg, "id", None)
+    if isinstance(message_id, int):
+        return message_id
+    return None
 
 
 def _sent_at(msg: object) -> datetime:

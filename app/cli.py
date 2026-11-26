@@ -361,11 +361,16 @@ def _session_line(name: str, dump: SessionDump | None) -> str:
 
 def _telegram_line(dump: TelegramDump | None) -> str:
     if dump is None:
-        return "telegram: не собран, чатов: 0, unlisted: 0"
+        return "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0"
     return (
         f"telegram: {_STATUS[dump.status]}{_login_code(dump)}, "
-        f"чатов: {len(dump.chats)}, unlisted: {dump.unlisted_active}"
+        f"чатов: {len(dump.chats)}, без участия: {_count_without_participation(dump)}, "
+        f"unlisted: {dump.unlisted_active}"
     )
+
+
+def _count_without_participation(dump: TelegramDump) -> int:
+    return sum(1 for chat in dump.chats if chat.without_participation())
 
 
 def _notes(day: CollectedDay) -> list[str]:
