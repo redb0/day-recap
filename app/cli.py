@@ -27,7 +27,13 @@ from app.summary.collect import (
     resolve_day,
 )
 from app.summary.models import Dump, GitDump, SessionDump, SourceStatus, TelegramDump, Window
-from app.summary.show import render_git, render_sessions, render_telegram, visible_truncation
+from app.summary.show import (
+    render_git,
+    render_sessions,
+    render_telegram,
+    visible_truncation,
+    without_participation,
+)
 
 DISTRIBUTION = "day-recap"
 _NOT_KEPT = "дамп не сохранён: дата старше ретенции"
@@ -361,10 +367,11 @@ def _session_line(name: str, dump: SessionDump | None) -> str:
 
 def _telegram_line(dump: TelegramDump | None) -> str:
     if dump is None:
-        return "telegram: не собран, чатов: 0, unlisted: 0"
+        return "telegram: не собран, чатов: 0, без участия: 0, unlisted: 0"
     return (
         f"telegram: {_STATUS[dump.status]}{_login_code(dump)}, "
-        f"чатов: {len(dump.chats)}, unlisted: {dump.unlisted_active}"
+        f"чатов: {len(dump.chats)}, без участия: {without_participation(dump)}, "
+        f"unlisted: {dump.unlisted_active}"
     )
 
 

@@ -262,8 +262,20 @@ class TelegramChat(BaseModel):
     name: str
 
 
+def _default_focus() -> list[int | str]:
+    """Чьи сообщения якорные: свой аккаунт.
+
+    Returns:
+        Список с одним `me`.
+    """
+    return ["me"]
+
+
 class TelegramConfig(BaseModel):
-    """Чтение чатов Telegram."""
+    """Чтение чатов Telegram.
+
+    `focus` — чьи сообщения считаются своими: `me`, id или `@username`.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -271,6 +283,7 @@ class TelegramConfig(BaseModel):
     max_messages_per_chat: int = 500
     page_size: int = 100
     flood_wait_retry_seconds: int = 60
+    focus: list[int | str] = Field(default_factory=_default_focus)
     chats: list[TelegramChat] = Field(default_factory=list)
 
 

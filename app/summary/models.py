@@ -83,13 +83,21 @@ class TranscriptSession(BaseModel):
 
 
 class TelegramMessage(BaseModel):
-    """Сообщение из белого списка. Реакции и служебные события сюда не попадают."""
+    """Сообщение из белого списка. Реакции и служебные события сюда не попадают.
+
+    `mine` — автор из `telegram.focus`, `mentions_me` — флаг Telegram `mentioned`.
+    Значения по умолчанию нужны дампам, записанным до появления этих полей.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
+    id: int | None = None
     sent_at: AwareDatetime
     author: str | None = None
     text: str
+    reply_to: int | None = None
+    mine: bool = False
+    mentions_me: bool = False
 
 
 class TelegramChatLog(BaseModel):

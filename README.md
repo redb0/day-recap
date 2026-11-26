@@ -51,7 +51,7 @@ does not change the config. Only allowlisted chats are read into the raw dump.
 | `[git]` | Which directories to walk and whose commits to take. |
 | `[transcripts]` | Cursor JSONL roots and how messages are trimmed. |
 | `[opencode]` | OpenCode database and the same trim. |
-| `[telegram]` | Whether the source is on, and the allowlist. |
+| `[telegram]` | Whether the source is on, the allowlist, and `focus`: whose messages count as yours. |
 | `[summary]` | Size threshold. |
 
 Keys and defaults ship in the package as `app/config.example.toml`.

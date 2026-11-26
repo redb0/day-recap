@@ -16,7 +16,12 @@ from telethon.errors import (
 )
 from telethon.tl.functions.messages import GetForumTopicsRequest
 
-from app.collectors.telegram.messages import dump_messages, forward_peer_id, sender_fields
+from app.collectors.telegram.messages import (
+    Focus,
+    dump_messages,
+    forward_peer_id,
+    sender_fields,
+)
 from app.collectors.telegram.tg import (
     FLOOD_HINT,
     connected,
@@ -139,12 +144,13 @@ async def _collect(
         message_limit=config.telegram.max_messages_per_chat,
         window=window,
     )
+    focus = Focus.parse(config.telegram.focus)
     total = len(config.telegram.chats)
     for index, chat in enumerate(config.telegram.chats):
         _step(progress, f"telegram: чат {index + 1}/{total}")
         if index:
             await sleep(_PAUSE_BETWEEN_CHATS)
-        log, note = await _chat(client, chat, pace=pace)
+        log, note = await _chat(client, chat, pace=pace, focus=focus)
         if note is not None:
             notes.append(note)
         if log.messages:
@@ -168,6 +174,7 @@ async def _chat(
     chat: TelegramChat,
     *,
     pace: _Pace,
+    focus: Focus,
 ) -> tuple[TelegramChatLog, str | None]:
     try:
         entity = await retry_flood(
@@ -185,7 +192,7 @@ async def _chat(
     log = TelegramChatLog(
         id=chat.id,
         name=chat.name,
-        messages=dump_messages(raw, forward_names=names),
+        messages=dump_messages(raw, forward_names=names, focus=focus),
     )
     if truncated:
         return log, f"{chat.name}: оставлены последние {pace.message_limit} сообщений"
